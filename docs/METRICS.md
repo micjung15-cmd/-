@@ -14,6 +14,22 @@
 | 제외 조건 | 수령일이 없으면 `NULL`. **0으로 채우지 않습니다** — 0으로 채우면 '정시 도착'으로 집계되어 지연율이 실제보다 낮아집니다 |
 | 정의 위치 | `sql/base.sql` |
 
+[답안]
+- 4분위로 구분(p25 -17일 / 중앙값 -12일 / p.75 -7일 ...)
+- 정시(=0) 구분
+- 지연 구분 but p.95가 3일 지연이라 일주일치 이상 자르는 것 의미 없다고 판단 => '1~7일 지연'과 '7일 지연' 두 파트(?)로만 자르기 
+ 
+    CASE
+        WHEN o.order_delivered_customer_date IS NULL THEN '미상'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -17 THEN '①[1분위] 17일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -12 THEN '②[2분위] 12일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <=  -7 THEN '③[3분위] 7일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) =  0 THEN '④ 정시'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 7 THEN '⑤ 1~7일 지연'
+        ELSE '⑥ 7일+ 지연'
+    END AS delay_bucket,
+
+
 ### 지연율
 
 | | |
