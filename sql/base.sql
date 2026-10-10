@@ -73,12 +73,12 @@ SELECT
     -- 지연 구간. 지금은 임의 구간이니 02 노트북에서 분포를 보고 근거를 만들어 고치세요.
     CASE
         WHEN o.order_delivered_customer_date IS NULL THEN '미상'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -8 THEN '① 8일+ 조기'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -1 THEN '② 1~7일 조기'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) =  0 THEN '③ 정시'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <=  7 THEN '④ 1~7일 지연'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 20 THEN '⑤ 8~20일 지연'
-        ELSE '⑥ 21일+ 지연'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -17 THEN '①[1분위] 17일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -12 THEN '②[2분위] 12일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <=  -7 THEN '③[3분위] 7일 조기'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) =  0 THEN '④ 정시'
+        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 7 THEN '⑤ 1~7일 지연'
+        ELSE '⑥ 7일+ 지연'
     END AS delay_bucket,
 
     oi.item_count, oi.gmv, oi.freight, oi.seller_id, s.seller_state,
