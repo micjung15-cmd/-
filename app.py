@@ -154,6 +154,34 @@ with tab2:
     st.info(
         "**추가할 자리** — `notebooks/03_카테고리_셀러.ipynb` 에서 셀러 순위 쿼리를 완성한 뒤 "
         "여기에 `block(...)` 한 번만 더 부르면 붙습니다."
+
+#관리가 필요한 셀러 정의=①지연율 4분위 or ②최저점(=1) 비율 평균보다 높음  (**이유/지연율 4분위 AND (최저점 비율 > 전체 평균 최저점 비율) 셀러 36명)
+
+management_seller = q("""
+WITH s AS (
+  SELECT seller_id AS 셀러ID,
+         COUNT(*) AS 주문수,
+         round(100.0 * count(*) FILTER (WHERE is_late) / count(*) FILTER (WHERE is_late IS NOT NULL), 1) AS 지연율,
+         count(*) FILTER (WHERE review_score = 1) AS 최저점리뷰수,
+         round(100.0 * count(*) FILTER (WHERE review_score = 1) / count(*), 1) AS 최저점비율,
+         round(avg(review_score), 3) AS 평균점수
+FROM order_fact
+WHERE has_review AND is_late IS NOT NULL
+GROUP BY 셀러ID
+HAVING count(*) >= 30
+),
+
+s2 AS (
+  SELECT *,
+    NTILE(4) OVER (ORDER BY 지연율) AS 지연율_사분위,
+    ROUND(AVG(최저점비율) OVER (), 1) AS 전체평균_최저점비율
+  FROM s
+)
+SELECT *
+FROM s2
+WHERE (지연율_사분위 = 4) OR (최저점비율 > 전체평균_최저점비율)
+ORDER BY 지연율 DESC, 최저점비율 DESC
+""")
     )
 
 # ────────────────────────────────────────────────────────── 데이터 신뢰도
