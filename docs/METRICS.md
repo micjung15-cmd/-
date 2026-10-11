@@ -14,22 +14,6 @@
 | 제외 조건 | 수령일이 없으면 `NULL`. **0으로 채우지 않습니다** — 0으로 채우면 '정시 도착'으로 집계되어 지연율이 실제보다 낮아집니다 |
 | 정의 위치 | `sql/base.sql` |
 
-[답안]
-- 4분위로 구분(p25 -17일 / 중앙값 -12일 / p.75 -7일 ...)
-- 정시(=0) 구분
-- 지연 구분 but p.95가 3일 지연이라 일주일치 이상 자르는 것 의미 없다고 판단 => '1~7일 지연'과 '7일 지연' 두 파트(?)로만 자르기 
- 
-    CASE
-        WHEN o.order_delivered_customer_date IS NULL THEN '미상'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -17 THEN '①[1분위] 17일 조기'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= -12 THEN '②[2분위] 12일 조기'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <=  -7 THEN '③[3분위] 7일 조기'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) =  0 THEN '④ 정시'
-        WHEN date_diff('day', CAST(o.order_estimated_delivery_date AS TIMESTAMP), CAST(o.order_delivered_customer_date AS TIMESTAMP)) <= 7 THEN '⑤ 1~7일 지연'
-        ELSE '⑥ 7일+ 지연'
-    END AS delay_bucket,
-
-
 ### 지연율
 
 | | |
@@ -53,6 +37,7 @@
 | 계산식 | `해당 구간에서 1점을 준 주문 ÷ 그 구간 전체 주문 × 100` |
 | 왜 따로 보나 | 평균이 완만해도 최저점 비율은 급격히 튀는 구간이 있습니다. 평균만으로는 놓칩니다 |
 
+
 ### 지연 구간 `delay_bucket`
 
 | | |
@@ -61,7 +46,13 @@
 | 정의 위치 | `sql/base.sql` (여기 한 곳에서만 정의) |
 | 근거 | **[작성 필요]** 현재는 임의 구간입니다. `notebooks/02` 의 분포를 보고 근거를 만든 뒤 채우세요 |
 
-### 중복 리뷰 처리
+[답안]
+
+17일+ 조기 / 12-16일 조기 / 1-7일 조기 / 정시 / 1-7일 지연 / 7일+ 지연
+
+근거=①4분위로 구분(p25 -17일 / 중앙값 -12일 / p.75 -7일 ...) ② 정시(=0) 구분 ③지연 구분 but p.95가 3일 지연이라 일주일치 이상 자르는 것 의미 없다고 판단 => '1~7일 지연'과 '7일 지연' 두 파트(?)로만 자르기
+
+### 중복 리뷰 처리(Q)
 
 | | |
 |---|---|
@@ -69,7 +60,8 @@
 | 근거 | 고객의 최종 판단으로 봄 |
 | 검토할 것 | **[작성 필요]** 평균으로 바꿨을 때 결과가 얼마나 달라지는지 계산하고 차이를 적으세요 |
 
-### 대표 셀러
+
+### 대표 셀러 => Q. 작성 불가. 주문 1건 내 품목별 가격을 알 수 없음 (*가격 컬럼 gmv는 총합)
 
 | | |
 |---|---|
@@ -77,10 +69,16 @@
 | 한계 | 여러 셀러가 섞인 주문의 책임을 한 명에게 몰아줍니다. 셀러 순위를 해석할 때 반드시 함께 밝혀야 합니다 |
 | 검토할 것 | **[작성 필요]** 셀러가 2명 이상인 주문의 비중을 세어 영향 범위를 적으세요 |
 
-### 최소 표본 기준
+
+
+### 최소 표본 기준 =>  Q. 적절한 지연 건수(?) 정하기
 
 | | |
 |---|---|
 | 카테고리 | 전체 200건 이상 · 지연 30건 이상 |
 | 셀러 | **[작성 필요]** — `notebooks/03` 에서 정할 것 |
 | 근거 | **[작성 필요]** 기준을 바꿔 보며 순위가 뒤집히는지 확인한 결과를 적으세요 |
+
+[답안]
+전체 300건, 지연 30건 이상 => 카테고리 28개. 주문수 높여도(단, 1000건 이하) 순위는 대체로 비슷. 애초에 1000건 미만 품목이 7개로 적기 때문.)
+이유=배송 지연 품목 중 최소 주문 품목=오디오(341건). 오디오는 하락폭 2위이기도. 
